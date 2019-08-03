@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="ZenHubApiMirrorService">
+        <wb-resource deploy-path="/" source-path="/WebContent" tag="defaultRootSource"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/.apt_generated"/>
+        <dependent-module archiveName="ZenHubApiMirror.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/ZenHubApiMirror/ZenHubApiMirror">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module deploy-path="/WEB-INF/lib" handle="module:/resource/zenhub-api-java-client/zenhub-api-java-client">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <property name="context-root" value="ZenHubApiMirrorService"/>
+        <property name="java-output-path" value="/ZenHubApiMirrorService/WebContent/WEB-INF/classes"/>
+    </wb-module>
+</project-modules>

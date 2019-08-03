@@ -1,0 +1,27 @@
+<server description="new server">
+    
+    <!-- Enable features -->
+    <featureManager>
+        <feature>jaxrs-2.0</feature>
+        <feature>jndi-1.0</feature>
+        <feature>ssl-1.0</feature>
+        <feature>transportSecurity-1.0</feature>
+    </featureManager>
+    
+    <!-- To access this server from a remote client add a host attribute to the following element, e.g. host="*" -->
+    <httpEndpoint id="defaultHttpEndpoint" httpsPort="9443" />
+    
+    <sslDefault outboundSSLRef="outboundSSLConfig" />
+    <ssl id="outboundSSLConfig" keyStoreRef="cacertKeyStore" />
+    <keyStore id="cacertKeyStore" location="/opt/ibm/java/jre/lib/security/cacerts" password="changeit" type="JKS" />
+    
+    <!-- If using OpenJ9... -->
+    <!-- <keyStore id="cacertKeyStore" location="/opt/java/openjdk/lib/security/cacerts" password="changeit" /> -->
+        
+    <!-- Automatically expand WAR files and EAR files -->
+    <applicationManager autoExpand="true" />
+
+    <jndiEntry jndiName="zenhub-api-mirror/db-path" value="/home/default/data"/>
+    <jndiEntry jndiName="zenhub-api-mirror/config-path" value="/config/zenhub-settings.yaml"/>
+
+</server>

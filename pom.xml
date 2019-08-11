@@ -6,7 +6,7 @@
 
 	<groupId>zenhub-api-mirror</groupId>
 	<artifactId>zenhub-api-mirror-pom</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<packaging>pom</packaging>
 	
 	<modules>

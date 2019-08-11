@@ -32,4 +32,4 @@ docker run  -d  -p 9443:9443 --name zenhub-api-mirror-container \
     --cap-drop=all \
     --tmpfs /opt/ol/wlp/output --tmpfs /logs \
     --read-only \
-    jgwest/zenhub-api-mirror
+    zenhub-api-mirror

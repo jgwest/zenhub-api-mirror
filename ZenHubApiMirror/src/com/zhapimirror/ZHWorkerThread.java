@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jonathan West
+ * Copyright 2019, 2020 Jonathan West
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -159,16 +159,21 @@ public class ZHWorkerThread extends Thread {
 
 		String repoName = repository.getRepoName();
 
+		String debugStr;
+
 		if (owner.getType() == Type.ORG) {
 			GHOrganization org = gh.getOrganization(owner.getOrgNameOrNull());
 			repo = org.getRepository(repoName);
 
-			log.logDebug("Processing org: " + org.getLogin() + "/" + repoName);
+			debugStr = org.getLogin() + "/" + repoName;
+
+			log.logDebug("Processing repo from org: " + debugStr);
 		} else {
 			GHUser user = gh.getUser(owner.getUserNameOrNull());
 			repo = user.getRepository(repoName);
 
-			log.logDebug("Processing user: " + user.getLogin() + "/" + repoName);
+			debugStr = user.getLogin() + "/" + repoName;
+			log.logDebug("Processing repo from user: " + debugStr);
 		}
 
 		long repoId = repo.getId();
@@ -184,6 +189,8 @@ public class ZHWorkerThread extends Thread {
 			ApiResponse<GetEpicsResponseJson> r = epicsService.getEpics(repoId);
 			GetEpicsResponseJson epics = r.getResponse();
 			if (epics != null) {
+
+				log.logDebug("Received getEpics response for " + debugStr);
 				db.persist(epics, repoId);
 
 				if (epics.getEpic_issues() != null) {
@@ -191,6 +198,7 @@ public class ZHWorkerThread extends Thread {
 					epics.getEpic_issues().stream().map(e -> e.getIssue_number()).forEach(issueNumber -> {
 
 						if (!filter.processIssue(owner, repoName, issueNumber)) {
+							log.logDebug("Filtering out " + debugStr + "/" + issueNumber);
 							return;
 						}
 
@@ -198,12 +206,19 @@ public class ZHWorkerThread extends Thread {
 							ApiResponse<GetEpicResponseJson> r2 = epicsService.getEpic(repoId, issueNumber);
 							GetEpicResponseJson epic = r2.getResponse();
 							if (epic != null) {
+								log.logDebug("Get epic for " + debugStr + "/" + issueNumber + " persisted.");
 								db.persist(epic, repoId, issueNumber);
+							} else {
+								log.logDebug("Get epic for " + debugStr + "/" + issueNumber + " was null.");
 							}
 						}, "epic->issues->" + issueNumber);
 
 					});
+				} else {
+					log.logDebug("The received getEpics response had null issues, " + debugStr);
 				}
+			} else {
+				log.logDebug("Received getEpics response: null, for " + debugStr);
 			}
 		}
 

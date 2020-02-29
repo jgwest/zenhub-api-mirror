@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jonathan West
+ * Copyright 2019, 2020 Jonathan West
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -224,6 +225,12 @@ public class ZHMirrorTest extends AbstractTest {
 		List<EpicIssueJson> issues = olEpics.getEpic_issues();
 		assertNotNull(issues);
 
+		issues = new ArrayList<>(issues);
+		Collections.sort(issues, (a, b) -> {
+			// Sort ascending by issue number
+			return a.getIssue_number() - b.getIssue_number();
+		});
+
 		assertTrue(issues.size() > 10);
 
 		assertTrue(issues.stream().allMatch(issue -> issue.getIssue_url() != null && !issue.getIssue_url().trim().isEmpty()));
@@ -240,7 +247,7 @@ public class ZHMirrorTest extends AbstractTest {
 		List<GetEpicResponseJson> firstFiveResponses = issues.subList(0, 5).parallelStream().map(e -> {
 			GetEpicResponseJson gerj = db.getEpic(openLibertyRepoId, e.getIssue_number()).orElse(null);
 			if (gerj == null) {
-				System.out.println("Unable to find:" + e.getIssue_number());
+				System.out.println("Unable to find issue epic: " + e.getIssue_number());
 			}
 			return gerj;
 		}).collect(Collectors.toList());

@@ -36,5 +36,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="/ZenHubOptionalStandaloneDependencies/lib/commons-codec-1.11.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/zenhub-api-java-client"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/ZenHubApiMirrorShared"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

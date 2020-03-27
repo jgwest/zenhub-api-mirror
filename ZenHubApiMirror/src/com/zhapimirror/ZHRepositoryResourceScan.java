@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jonathan West
+ * Copyright 2019, 2020 Jonathan West
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.zhapi.ApiResponse;
 import com.zhapi.ZenHubClient;
 import com.zhapi.json.responses.DependenciesForARepoResponseJson;
@@ -34,6 +36,7 @@ import com.zhapi.json.responses.GetEpicsResponseJson;
 import com.zhapi.services.BoardService;
 import com.zhapi.services.DependenciesService;
 import com.zhapi.services.EpicsService;
+import com.zhapi.shared.json.RepositoryChangeEventJson;
 import com.zhapimirror.GHOwner.Type;
 import com.zhapimirror.ZHWorkQueue.ZHRepositoryContainer;
 
@@ -120,13 +123,26 @@ public class ZHRepositoryResourceScan {
 
 	}
 
-	private static void runOnARepository(GHRepository repository, ZenHubClient zh, ZHDatabase db) {
+	private static void runOnARepository(GHRepository repository, ZenHubClient zh, ZHDatabase db) throws JsonProcessingException {
+
+		// Have any of the repository resources changed on ZH since we last saw them; we
+		// answer this question by comparing our local database copy with what we get
+		// back from ZH.
+		boolean isRepositoryChangedFromDb = false;
+
 		// Boards
 		{
 			BoardService boardService = new BoardService(zh);
 			ApiResponse<GetBoardForRepositoryResponseJson> r = boardService.getZenHubBoardForRepo(repository.getId());
+
 			if (r != null && r.getResponse() != null) {
-				db.persist(r.getResponse(), repository.getId());
+
+				GetBoardForRepositoryResponseJson gbfrr = r.getResponse();
+
+				isRepositoryChangedFromDb = ZHWorkerThread.isRepositoryChangedFromDb(isRepositoryChangedFromDb,
+						db.getZenHubBoardForRepo(repository.getId()).orElse(null), gbfrr);
+
+				db.persist(gbfrr, repository.getId());
 			}
 		}
 
@@ -135,8 +151,15 @@ public class ZHRepositoryResourceScan {
 			DependenciesService dependenciesService = new DependenciesService(zh);
 			ApiResponse<DependenciesForARepoResponseJson> r = dependenciesService
 					.getDependenciesForARepository(repository.getId());
+
 			if (r != null && r.getResponse() != null) {
-				db.persist(r.getResponse(), repository.getId());
+
+				DependenciesForARepoResponseJson dfarrj = r.getResponse();
+
+				isRepositoryChangedFromDb = ZHWorkerThread.isRepositoryChangedFromDb(isRepositoryChangedFromDb,
+						db.getDependenciesForARepository(repository.getId()).orElse(null), dfarrj);
+
+				db.persist(dfarrj, repository.getId());
 			}
 
 		}
@@ -146,9 +169,24 @@ public class ZHRepositoryResourceScan {
 			EpicsService epicsService = new EpicsService(zh);
 			ApiResponse<GetEpicsResponseJson> r = epicsService.getEpics(repository.getId());
 			if (r != null && r.getResponse() != null) {
-				db.persist(r.getResponse(), repository.getId());
-			}
 
+				GetEpicsResponseJson gerj = r.getResponse();
+
+				isRepositoryChangedFromDb = ZHWorkerThread.isRepositoryChangedFromDb(isRepositoryChangedFromDb,
+						db.getEpics(repository.getId()).orElse(null), gerj);
+
+				db.persist(gerj, repository.getId());
+			}
+		}
+
+		if (isRepositoryChangedFromDb) {
+			RepositoryChangeEventJson rcej = new RepositoryChangeEventJson();
+			rcej.setRepoId(repository.getId());
+			rcej.setTime(System.currentTimeMillis());
+			rcej.setUuid(UUID.randomUUID().toString());
+
+			log.logInfo("Repository resources changed: " + repository.getId());
+			db.persistRepositoryChangeEvent(rcej);
 		}
 
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jonathan West
+ * Copyright 2019, 2020 Jonathan West
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,6 +83,10 @@ public class ZHApiMirrorInstance {
 			Optional<String> jndiOverride = lookupString("zenhub-api-mirror/db-path", false);
 			if (jndiOverride.isPresent()) {
 				dbPath = jndiOverride.get();
+			}
+
+			if (dbPath == null) {
+				throw new RuntimeException("ZH Database path not specified.");
 			}
 
 			ZHServerInstanceBuilder builder = ZHServerInstance.builder().githubServerName(sf.getGithubServer())

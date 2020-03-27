@@ -11,6 +11,7 @@
 	
 	<modules>
 		<module>ZenHubApiMirror</module>
+		<module>ZenHubApiMirrorShared</module>
 		<module>ZenHubApiMirrorClient</module>
 		<module>ZenHubApiMirrorService</module>
 		<module>ZenHubApiMirrorLiberty</module>

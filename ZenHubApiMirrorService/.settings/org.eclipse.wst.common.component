@@ -9,6 +9,39 @@
         <dependent-module deploy-path="/WEB-INF/lib" handle="module:/resource/zenhub-api-java-client/zenhub-api-java-client">
             <dependency-type>uses</dependency-type>
         </dependent-module>
+        <dependent-module archiveName="commons-codec-1.11.jar" deploy-path="/WEB-INF/lib" handle="module:/classpath/lib/ZenHubOptionalStandaloneDependencies/lib/commons-codec-1.11.jar">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="jackson-databind-2.10.2.jar" deploy-path="/WEB-INF/lib" handle="module:/classpath/lib/ZenHubOptionalStandaloneDependencies/lib/jackson-databind-2.10.2.jar">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="jackson-core-2.10.2.jar" deploy-path="/WEB-INF/lib" handle="module:/classpath/lib/ZenHubOptionalStandaloneDependencies/lib/jackson-core-2.10.2.jar">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="jackson-dataformat-yaml-2.10.2.jar" deploy-path="/WEB-INF/lib" handle="module:/classpath/lib/ZenHubOptionalStandaloneDependencies/lib/jackson-dataformat-yaml-2.10.2.jar">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="jackson-annotations-2.10.2.jar" deploy-path="/WEB-INF/lib" handle="module:/classpath/lib/ZenHubOptionalStandaloneDependencies/lib/jackson-annotations-2.10.2.jar">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="commons-logging-1.2.jar" deploy-path="/WEB-INF/lib" handle="module:/classpath/lib/ZenHubOptionalStandaloneDependencies/lib/commons-logging-1.2.jar">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="snakeyaml-1.24.jar" deploy-path="/WEB-INF/lib" handle="module:/classpath/lib/ZenHubOptionalStandaloneDependencies/lib/snakeyaml-1.24.jar">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="commons-io-1.4.jar" deploy-path="/WEB-INF/lib" handle="module:/classpath/lib/ZenHubOptionalStandaloneDependencies/lib/commons-io-1.4.jar">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="httpcore-4.4.13.jar" deploy-path="/WEB-INF/lib" handle="module:/classpath/lib/ZenHubOptionalStandaloneDependencies/lib/httpcore-4.4.13.jar">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="httpclient-4.5.11.jar" deploy-path="/WEB-INF/lib" handle="module:/classpath/lib/ZenHubOptionalStandaloneDependencies/lib/httpclient-4.5.11.jar">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="ZenHubApiMirrorShared.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/ZenHubApiMirrorShared/ZenHubApiMirrorShared">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
         <property name="context-root" value="ZenHubApiMirrorService"/>
         <property name="java-output-path" value="/ZenHubApiMirrorService/WebContent/WEB-INF/classes"/>
     </wb-module>

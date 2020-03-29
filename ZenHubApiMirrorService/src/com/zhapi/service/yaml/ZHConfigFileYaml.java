@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jonathan West
+ * Copyright 2019, 2020 Jonathan West
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,10 @@ package com.zhapi.service.yaml;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * YAML file which specifies configuration settings for the running web
+ * application.
+ */
 public class ZHConfigFileYaml {
 
 	private String githubServer;

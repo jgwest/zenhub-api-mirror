@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jonathan West
+ * Copyright 2019, 2020 Jonathan West
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import com.zhapi.json.responses.GetBoardForRepositoryResponseJson;
 import com.zhapi.json.responses.GetEpicResponseJson;
 import com.zhapi.json.responses.GetEpicsResponseJson;
 import com.zhapi.json.responses.GetIssueDataResponseJson;
+import com.zhapi.shared.json.RepositoryChangeEventJson;
 
 /**
  * This class wraps an 'inner' database, and speeds up retrieval operations from
@@ -305,4 +306,13 @@ public class ZHInMemoryCacheDb implements ZHDatabase {
 		return result;
 	}
 
+	@Override
+	public void persistRepositoryChangeEvent(RepositoryChangeEventJson newEvent) {
+		inner.persistRepositoryChangeEvent(newEvent);
+	}
+
+	@Override
+	public List<RepositoryChangeEventJson> getRecentRepositoryChangeEvents(long timestampEqualOrGreater) {
+		return inner.getRecentRepositoryChangeEvents(timestampEqualOrGreater);
+	}
 }

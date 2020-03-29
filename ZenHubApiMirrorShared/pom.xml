@@ -3,29 +3,11 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>zenhub-api-mirror</groupId>
-	<artifactId>ZenHubApiMirror</artifactId>
+	<artifactId>ZenHubApiMirrorShared</artifactId>
 	<version>1.0.0</version>
+	<packaging>jar</packaging>
 
 	<dependencies>
-	
-		<dependency>
-			<groupId>zenhub-api-java-client</groupId>
-			<artifactId>zenhub-api-java-client</artifactId>
-			<version>1.0.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>zenhub-api-mirror</groupId>
-			<artifactId>ZenHubApiMirrorShared</artifactId>
-			<version>1.0.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.kohsuke</groupId>
-			<artifactId>github-api</artifactId>
-			<version>1.95</version>
-		</dependency>
-
 	</dependencies>
 
 	<build>

@@ -18,6 +18,8 @@ package com.zhapimirror;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHIssueState;
@@ -26,6 +28,8 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zhapi.ApiResponse;
 import com.zhapi.ZenHubApiException;
 import com.zhapi.ZenHubClient;
@@ -39,6 +43,7 @@ import com.zhapi.services.BoardService;
 import com.zhapi.services.DependenciesService;
 import com.zhapi.services.EpicsService;
 import com.zhapi.services.IssuesService;
+import com.zhapi.shared.json.RepositoryChangeEventJson;
 import com.zhapimirror.GHOwner.Type;
 import com.zhapimirror.ZHWorkQueue.ZHIssueContainer;
 import com.zhapimirror.ZHWorkQueue.ZHRepositoryContainer;
@@ -60,6 +65,8 @@ public class ZHWorkerThread extends Thread {
 	private final int threadId;
 
 	private static final ZHLog log = ZHLog.getInstance();
+
+	private static final boolean WORKER_THREAD_DEBUG = false;
 
 	public ZHWorkerThread(ZHWorkQueue workQueue, int threadId) {
 		setName(ZHWorkerThread.class.getName());
@@ -87,7 +94,6 @@ public class ZHWorkerThread extends Thread {
 						if (e instanceof ZenHubApiException && e.getMessage().contains("403 for URL")) {
 							log.logError("ZH Rate Limit Hit: " + e.getClass().getName() + ": " + e.getMessage());
 						} else {
-							System.err.println("exception message 2 is: " + e.getMessage() + " " + e);
 							e.printStackTrace();
 						}
 						log.logDebug("Thread #" + threadId + " sleeping after rate limit error. Current work in queue: "
@@ -181,6 +187,11 @@ public class ZHWorkerThread extends Thread {
 
 		ZHFilter filter = workQueue.getFilter();
 
+		// Have any of the repository resources changed on ZH since we last saw them; we
+		// answer this question by comparing our local database copy with what we get
+		// back from ZH.
+		boolean isRepositoryChangedFromDb = false;
+
 		// First we process the repository level ZenHub resources
 
 		// Epics
@@ -188,6 +199,10 @@ public class ZHWorkerThread extends Thread {
 			EpicsService epicsService = new EpicsService(zh);
 			ApiResponse<GetEpicsResponseJson> r = epicsService.getEpics(repoId);
 			GetEpicsResponseJson epics = r.getResponse();
+
+			isRepositoryChangedFromDb = isRepositoryChangedFromDb(isRepositoryChangedFromDb, db.getEpics(repoId).orElse(null),
+					epics);
+
 			if (epics != null) {
 
 				log.logDebug("Received getEpics response for " + debugStr);
@@ -217,6 +232,7 @@ public class ZHWorkerThread extends Thread {
 				} else {
 					log.logDebug("The received getEpics response had null issues, " + debugStr);
 				}
+
 			} else {
 				log.logDebug("Received getEpics response: null, for " + debugStr);
 			}
@@ -227,9 +243,14 @@ public class ZHWorkerThread extends Thread {
 			BoardService boardService = new BoardService(zh);
 			ApiResponse<GetBoardForRepositoryResponseJson> r = boardService.getZenHubBoardForRepo(repoId);
 			GetBoardForRepositoryResponseJson board = r.getResponse();
+
+			isRepositoryChangedFromDb = isRepositoryChangedFromDb(isRepositoryChangedFromDb,
+					db.getZenHubBoardForRepo(repoId).orElse(null), board);
+
 			if (board != null) {
 				db.persist(board, repoId);
 			}
+
 		}
 
 		// Dependencies
@@ -237,9 +258,24 @@ public class ZHWorkerThread extends Thread {
 			DependenciesService dependenciesService = new DependenciesService(zh);
 			ApiResponse<DependenciesForARepoResponseJson> r = dependenciesService.getDependenciesForARepository(repoId);
 			DependenciesForARepoResponseJson dependencies = r.getResponse();
+
+			isRepositoryChangedFromDb = isRepositoryChangedFromDb(isRepositoryChangedFromDb,
+					db.getDependenciesForARepository(repoId).orElse(null), dependencies);
+
 			if (dependencies != null) {
 				db.persist(dependencies, repoId);
 			}
+
+		}
+
+		if (isRepositoryChangedFromDb) {
+			RepositoryChangeEventJson rcej = new RepositoryChangeEventJson();
+			rcej.setRepoId(repoId);
+			rcej.setTime(System.currentTimeMillis());
+			rcej.setUuid(UUID.randomUUID().toString());
+
+			log.logInfo("Repository resources changed: " + repoId);
+			db.persistRepositoryChangeEvent(rcej);
 		}
 
 		// Now, process the issues that are in the repository.
@@ -257,6 +293,45 @@ public class ZHWorkerThread extends Thread {
 			workQueue.addIssue(owner, repo, e);
 		}
 
+	}
+
+	/**
+	 * Have any of the repository resources changed on ZH since we last saw them; we
+	 * answer this question by comparing our local database copy with what we get
+	 * back from ZH.
+	 */
+	@SuppressWarnings("unused")
+	public static boolean isRepositoryChangedFromDb(boolean isChanged, Object oldDbVersion, Object newVersion)
+			throws JsonProcessingException {
+
+		if (oldDbVersion instanceof Optional) {
+			throw new IllegalArgumentException();
+		}
+
+		if (isChanged) {
+			return isChanged;
+		}
+
+		if (oldDbVersion == null) {
+			oldDbVersion = "{}";
+		}
+		if (newVersion == null) {
+			newVersion = "{}";
+		}
+
+		boolean result = !JsonUtil.isEqualBySortedAlphanumerics(oldDbVersion, newVersion, new ObjectMapper());
+
+		if (WORKER_THREAD_DEBUG && result) {
+
+			ObjectMapper om = new ObjectMapper();
+			System.out.println("---------------------------------------------------");
+			System.out.println(om.writeValueAsString(oldDbVersion));
+			System.out.println("------------");
+			System.out.println(om.writeValueAsString(newVersion));
+
+		}
+
+		return result;
 	}
 
 	private static void retryOnRateLimit(Runnable r, String debugMsg) {

@@ -20,5 +20,6 @@
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/zenhub-api-java-client"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZenHubApiMirror"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/ZenHubApiMirrorShared"/>
 	<classpathentry kind="output" path="WebContent/WEB-INF/classes"/>
 </classpath>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jonathan West
+ * Copyright 2019, 2020 Jonathan West
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -42,6 +44,7 @@ import com.zhapi.json.responses.GetBoardForRepositoryResponseJson;
 import com.zhapi.json.responses.GetEpicResponseJson;
 import com.zhapi.json.responses.GetEpicsResponseJson;
 import com.zhapi.json.responses.GetIssueDataResponseJson;
+import com.zhapi.shared.json.RepositoryChangeEventJson;
 
 /**
  * Persists the ZH JSON resources to disk, using path and filenames to
@@ -364,7 +367,8 @@ public class ZHPersistJsonDb implements ZHDatabase {
 					try {
 						fw.close();
 					} catch (IOException e) {
-						/* ignore */ }
+						/* ignore */
+					}
 				}
 			}
 
@@ -431,14 +435,24 @@ public class ZHPersistJsonDb implements ZHDatabase {
 
 		boolean uninitializeDatabase = false;
 
+		if (!isDatabaseInitialized()) {
+			// If the database has not yet been initialized, then just set the value and
+			// return.
+			persistString(KEY_ZENHUB_CONTENTS_HASH, encoded);
+			return;
+		}
+
 		Optional<String> gitHubContentsHash = getString(KEY_ZENHUB_CONTENTS_HASH);
 		if (!gitHubContentsHash.isPresent()) { // key not found
 			uninitializeDatabase = true;
+			log.logInfo("* ZenHub contents key not found, so uninitializing database.");
 		} else if (!gitHubContentsHash.get().equals(encoded)) {
 			uninitializeDatabase = true; // key doesn't match
+			log.logInfo("* ZenHub contents key did not match, so uninitializing database.");
 		}
 
 		if (uninitializeDatabase) {
+			// If we want to "un-initialize" the database, move it to 'old/'
 
 			File oldDir = new File(outputDirectory, "old");
 			if (!oldDir.exists()) {
@@ -463,8 +477,127 @@ public class ZHPersistJsonDb implements ZHDatabase {
 
 			log.logInfo("* Old database has been moved to " + oldDir.getPath());
 
+			persistString(KEY_ZENHUB_CONTENTS_HASH, encoded);
+
 			initialized.set(false);
 		}
+
+	}
+
+	@Override
+	public void persistRepositoryChangeEvent(RepositoryChangeEventJson newEvent) {
+		File directory = new File(outputDirectory, "events");
+
+		if (newEvent.getTime() <= 0) {
+			throw new RuntimeException("One or more events was missing a time.");
+		}
+
+		try {
+			writeLock.lock();
+
+			if (!directory.exists() && !directory.mkdirs()) {
+				throw new RuntimeException("Unable to create directory: " + directory);
+			}
+
+			// Prevent collisions when different events occur together within the same
+			// millisecond.
+			long currTime = newEvent.getTime();
+			File file;
+			while (true) {
+
+				file = new File(directory, "repo-" + currTime + ".json");
+				if (file.exists()) {
+					currTime++;
+				} else {
+					break;
+				}
+
+			}
+
+			writeToFile(writeValueAsString(newEvent), file);
+
+		} finally {
+			writeLock.unlock();
+		}
+
+	}
+
+	@Override
+	public List<RepositoryChangeEventJson> getRecentRepositoryChangeEvents(long timestampEqualOrGreater) {
+		File directory = new File(outputDirectory, "events");
+
+		// Keep events in database for only 8 days
+		long expireTimestamp = System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert(8, TimeUnit.DAYS);
+
+		List<File> filesToDelete = new ArrayList<>();
+
+		List<RepositoryChangeEventJson> result = new ArrayList<>();
+		try {
+			readLock.lock();
+
+			ObjectMapper om = new ObjectMapper();
+
+			if (!directory.exists()) {
+				return Collections.emptyList();
+			}
+
+			List<File> files = Arrays.asList(directory.listFiles()).stream()
+					.filter(e -> e.getName().startsWith("repo-") && e.getName().endsWith(".json")).collect(Collectors.toList());
+
+			for (File f : files) {
+				String name = f.getName();
+				int index = name.indexOf("-");
+				int endIndex = name.indexOf(".json");
+
+				long timestamp = Long.parseLong(name.substring(index + 1, endIndex));
+
+				if (timestamp >= timestampEqualOrGreater) {
+
+					try {
+						RepositoryChangeEventJson rcej = om.readValue(readFromFile(f).get(), RepositoryChangeEventJson.class);
+
+						// It is possible for the filename timestamp to be larger than the actual
+						// timestamp in the file, so we check that both are >= timestampEqualOrGreater.
+
+						if (rcej.getTime() >= timestampEqualOrGreater) {
+							result.add(rcej);
+						}
+
+					} catch (IOException ex) {
+						throw new RuntimeException(ex);
+					}
+				}
+
+				if (timestamp < expireTimestamp) {
+					filesToDelete.add(f);
+				}
+
+			}
+
+		} finally {
+			readLock.unlock();
+		}
+
+		// Delete expired files.
+		try {
+			writeLock.lock();
+
+			filesToDelete.forEach(e -> {
+				if (e.exists() && !e.delete()) {
+					System.err.println("* Unable to delete: " + e.getPath());
+				}
+			});
+
+		} finally {
+			writeLock.unlock();
+		}
+
+		// Sort ascending by timestamp;
+		Collections.sort(result, (a, b) -> {
+			return (int) (a.getTime() - b.getTime());
+		});
+
+		return result;
 
 	}
 

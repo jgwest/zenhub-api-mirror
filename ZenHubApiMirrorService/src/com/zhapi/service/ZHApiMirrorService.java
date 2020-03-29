@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jonathan West
+ * Copyright 2019, 2020 Jonathan West
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import javax.enterprise.context.RequestScoped;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -34,6 +35,7 @@ import com.zhapi.json.responses.GetBoardForRepositoryResponseJson;
 import com.zhapi.json.responses.GetEpicResponseJson;
 import com.zhapi.json.responses.GetEpicsResponseJson;
 import com.zhapi.json.responses.GetIssueDataResponseJson;
+import com.zhapi.shared.json.RepositoryChangeEventJson;
 import com.zhapimirror.JsonUtil;
 import com.zhapimirror.ZHDatabase;
 import com.zhapimirror.ZHUtil;
@@ -140,6 +142,19 @@ public class ZHApiMirrorService {
 		} else {
 			return Response.status(Status.NOT_FOUND).build();
 		}
+	}
+
+	@GET
+	@Path("/repositoryChangeEvent")
+	public Response getRecentResourceChangeEvents(@QueryParam("since") long sinceGreaterOrEqualTime) {
+
+		verifyHeaderAuth();
+
+		ZHDatabase db = getDb();
+
+		List<RepositoryChangeEventJson> changes = db.getRecentRepositoryChangeEvents(sinceGreaterOrEqualTime);
+
+		return Response.ok(JsonUtil.toString(changes)).type(MediaType.APPLICATION_JSON_TYPE).build();
 	}
 
 	private void verifyHeaderAuth() {

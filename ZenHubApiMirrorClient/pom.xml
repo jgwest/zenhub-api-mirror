@@ -13,6 +13,11 @@
 			<artifactId>zenhub-api-java-client</artifactId>
 			<version>1.0.0</version>
 		</dependency>
+		<dependency>
+			<groupId>zenhub-api-mirror</groupId>
+			<artifactId>ZenHubApiMirrorShared</artifactId>
+			<version>1.0.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
